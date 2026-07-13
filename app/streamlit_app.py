@@ -227,6 +227,18 @@ df = df.sort_values("months_since_start", ascending=False, na_position="last").r
 
 st.subheader("Active CMO Movements")
 
+st.markdown(
+    f"""
+<div style="display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom:1rem; font-size:0.85rem; color:#d4d4d4;">
+  <span><span class="score-dot" style="background:{BAND_COLOR['green']};display:inline-block;"></span> &lt;6 months - too early</span>
+  <span><span class="score-dot" style="background:{BAND_COLOR['amber']};display:inline-block;"></span> 6-12 months - prime pitching window</span>
+  <span><span class="score-dot" style="background:{BAND_COLOR['red']};display:inline-block;"></span> 12+ months - past prime</span>
+  <span><span class="score-dot" style="background:{BAND_COLOR['unknown']};display:inline-block;"></span> Unknown - needs a date</span>
+</div>
+""",
+    unsafe_allow_html=True,
+)
+
 if "card_page" not in st.session_state:
     st.session_state.card_page = 0
 
