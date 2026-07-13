@@ -40,26 +40,37 @@ st.set_page_config(page_title="CMO Carousel | VCCP New Business Hub", layout="wi
 
 def get_secret(name):
     try:
-        return st.secrets[name]
+        value = st.secrets[name]
     except (KeyError, FileNotFoundError):
         return None
+    if isinstance(value, str):
+        # Strip whitespace and any non-ASCII characters (e.g. smart quotes
+        # introduced by copy-pasting into a web form) that would otherwise
+        # crash the underlying HTTP request with a UnicodeEncodeError.
+        value = value.strip().encode("ascii", "ignore").decode("ascii")
+    return value or None
 
 
 def fetch_private_file(path_in_repo):
     """Fetch a file from the private data repo via the GitHub API, if secrets
-    are configured (deployed use). Returns None when not configured, so the
-    caller falls back to reading the local data/ folder (local dev use)."""
+    are configured (deployed use). Returns None when not configured or on any
+    failure, so the caller falls back to reading the local data/ folder
+    (local dev use) - a broken secret should degrade gracefully, not crash
+    the whole app."""
     token = get_secret("GITHUB_DATA_TOKEN")
     repo = get_secret("GITHUB_DATA_REPO")
     if not token or not repo:
         return None
-    resp = requests.get(
-        f"https://api.github.com/repos/{repo}/contents/{path_in_repo}",
-        headers={"Authorization": f"token {token}", "Accept": "application/vnd.github.raw"},
-        timeout=10,
-    )
-    resp.raise_for_status()
-    return resp.text
+    try:
+        resp = requests.get(
+            f"https://api.github.com/repos/{repo}/contents/{path_in_repo}",
+            headers={"Authorization": f"token {token}", "Accept": "application/vnd.github.raw"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        return resp.text
+    except Exception:
+        return None
 
 
 @st.cache_data(ttl=300)
@@ -124,7 +135,7 @@ def last_updated_text():
                 dt = datetime.strptime(commit_date, "%Y-%m-%dT%H:%M:%SZ")
                 return dt.strftime("%b %d, %Y - %H:%M GMT")
             return "never"
-        except requests.RequestException:
+        except Exception:
             return "unavailable"
 
     try:
