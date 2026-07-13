@@ -186,6 +186,15 @@ html, body, [class*="css"] {
 .cmo-row span.label { color: #8a8a8a; }
 .score-pill { display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 700; }
 .score-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.score-dot.pulse {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    animation: pulse-red 1.8s ease-out infinite;
+}
+@keyframes pulse-red {
+    0%   { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+    70%  { box-shadow: 0 0 0 7px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
 hr.card-divider { border: none; border-top: 1px solid #2a2a2a; margin: 0.75rem 0; }
 
 .needs-mapping-box { background: #141414; border: 1px solid #2a2a2a; border-radius: 12px; padding: 1rem; }
@@ -267,6 +276,7 @@ card_cols = st.columns(CARDS_PER_PAGE)
 for col, (_, row) in zip(card_cols, page_df.iterrows()):
     try:
         color = BAND_COLOR[row["band"]]
+        dot_class = "score-dot pulse" if row["band"] == "red" else "score-dot"
         score_text = (
             f"{row['score_pct']}% ({BAND_SCORE_LABEL[row['band']]})" if row["score_pct"] is not None else "Unknown"
         )
@@ -297,7 +307,7 @@ for col, (_, row) in zip(card_cols, page_df.iterrows()):
   <div class="cmo-row"><span class="label">Appointed</span><span>{months_text}</span></div>
   <hr class="card-divider">
   <div class="cmo-row"><span class="label">Vulnerability</span>
-    <span class="score-pill"><span class="score-dot" style="background:{color};"></span>{score_text}</span>
+    <span class="score-pill"><span class="{dot_class}" style="background:{color};"></span>{score_text}</span>
   </div>
   <div class="cmo-row"><span class="label">Agency</span><span>{clean(row.get('current_incumbent_agency'), UNMAPPED_LABEL)}</span></div>
 </div>
