@@ -258,9 +258,11 @@ for col, (_, row) in zip(card_cols, page_df.iterrows()):
         score_text = (
             f"{row['score_pct']}% ({BAND_SCORE_LABEL[row['band']]})" if row["score_pct"] is not None else "Unknown"
         )
-        months_text = (
-            f"{row['months_since_start']} months ago" if row["months_since_start"] is not None else "unknown"
-        )
+        if row["months_since_start"] is not None:
+            estimated = row.get("start_date_is_estimated") is True
+            months_text = f"~{row['months_since_start']} months ago (est.)" if estimated else f"{row['months_since_start']} months ago"
+        else:
+            months_text = "unknown"
         domain = row.get("domain")
         initials = initials_for(row.get("person_name"))
         # Checked server-side (logo_exists) so the <img> is only ever included
@@ -300,13 +302,21 @@ st.markdown("<br>", unsafe_allow_html=True)
 table_col, chart_col = st.columns([2, 1])
 
 with table_col:
+    def months_since_display(row):
+        if row["months_since_start"] is None:
+            return None
+        estimated = row.get("start_date_is_estimated") is True
+        return f"~{row['months_since_start']} (est.)" if estimated else row["months_since_start"]
+
+    df["months_since_display"] = df.apply(months_since_display, axis=1)
+
     display_cols = [
-        "person_name", "new_company", "sector_guess", "months_since_start",
+        "person_name", "new_company", "sector_guess", "months_since_display",
         "current_incumbent_agency", "score_pct", "band",
     ]
     styled = df[display_cols].rename(columns={
         "person_name": "Person", "new_company": "Company", "sector_guess": "Sector",
-        "months_since_start": "Months Since", "current_incumbent_agency": "Agency",
+        "months_since_display": "Months Since", "current_incumbent_agency": "Agency",
         "score_pct": "Score %", "band": "Band",
     })
 
