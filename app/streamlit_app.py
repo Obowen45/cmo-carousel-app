@@ -198,7 +198,7 @@ st.markdown(
     f"""
 <div class="app-header">
 <h1><span class="brand">CMO CAROUSEL</span> <span class="sub">| VCCP New Business Hub</span></h1>
-<p>Last updated: {last_updated_text()}</p>
+<p>Last updated: {last_updated_text()} <span style="opacity:0.4;">(build v2)</span></p>
 </div>
 """,
     unsafe_allow_html=True,
