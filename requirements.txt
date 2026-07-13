@@ -1,0 +1,7 @@
+anthropic
+feedparser
+streamlit
+pandas
+python-dotenv
+requests
+openpyxl
