@@ -100,6 +100,13 @@ def load_data():
     return pd.DataFrame(records)
 
 
+def clean(value, fallback="-"):
+    # pandas can turn a None into NaN when a column mixes None and string
+    # values across rows; NaN is truthy, so a plain "value or fallback"
+    # would silently render the literal text "nan" instead of falling back.
+    return value if isinstance(value, str) and value.strip() else fallback
+
+
 def favicon_url(domain):
     return f"https://www.google.com/s2/favicons?domain={domain}&sz=128"
 
@@ -246,40 +253,47 @@ page_df = df.iloc[start : start + CARDS_PER_PAGE]
 
 card_cols = st.columns(CARDS_PER_PAGE)
 for col, (_, row) in zip(card_cols, page_df.iterrows()):
-    color = BAND_COLOR[row["band"]]
-    score_text = f"{row['score_pct']}% ({BAND_SCORE_LABEL[row['band']]})" if row["score_pct"] is not None else "Unknown"
-    months_text = f"{row['months_since_start']} months ago" if row["months_since_start"] is not None else "unknown"
-    domain = row.get("domain")
-    initials = initials_for(row.get("person_name"))
-    # Checked server-side (logo_exists) so the <img> is only ever included
-    # when it's known to work - no reliance on client-side onerror JS, which
-    # Streamlit's CSP blocks from firing on inline HTML.
-    avatar_html = (
-        f"<img src='{favicon_url(domain)}'>" if domain and logo_exists(domain) else initials
-    )
-    with col:
-        st.markdown(
-            f"""
+    try:
+        color = BAND_COLOR[row["band"]]
+        score_text = (
+            f"{row['score_pct']}% ({BAND_SCORE_LABEL[row['band']]})" if row["score_pct"] is not None else "Unknown"
+        )
+        months_text = (
+            f"{row['months_since_start']} months ago" if row["months_since_start"] is not None else "unknown"
+        )
+        domain = row.get("domain")
+        initials = initials_for(row.get("person_name"))
+        # Checked server-side (logo_exists) so the <img> is only ever included
+        # when it's known to work - no reliance on client-side onerror JS, which
+        # Streamlit's CSP blocks from firing on inline HTML.
+        avatar_html = (
+            f"<img src='{favicon_url(domain)}'>" if domain and logo_exists(domain) else initials
+        )
+        card_html = f"""
 <div class="cmo-card">
   <div class="cmo-card-top">
     <div class="cmo-avatar">{avatar_html}</div>
     <div>
-      <div class="cmo-name">{row['person_name'] or 'Unknown person'}</div>
-      <div class="cmo-title">{row['new_title'] or 'Unknown title'}</div>
+      <div class="cmo-name">{clean(row.get('person_name'), 'Unknown person')}</div>
+      <div class="cmo-title">{clean(row.get('new_title'), 'Unknown title')}</div>
     </div>
   </div>
-  <div class="cmo-row"><span class="label">Company</span><span>{row['new_company'] or '-'}</span></div>
-  <div class="cmo-row"><span class="label">Sector</span><span>{row['sector_guess'] or '-'}</span></div>
+  <div class="cmo-row"><span class="label">Company</span><span>{clean(row.get('new_company'))}</span></div>
+  <div class="cmo-row"><span class="label">Sector</span><span>{clean(row.get('sector_guess'))}</span></div>
   <div class="cmo-row"><span class="label">Appointed</span><span>{months_text}</span></div>
   <hr class="card-divider">
   <div class="cmo-row"><span class="label">Vulnerability</span>
     <span class="score-pill"><span class="score-dot" style="background:{color};"></span>{score_text}</span>
   </div>
-  <div class="cmo-row"><span class="label">Agency</span><span>{row['current_incumbent_agency']}</span></div>
+  <div class="cmo-row"><span class="label">Agency</span><span>{clean(row.get('current_incumbent_agency'), UNMAPPED_LABEL)}</span></div>
 </div>
-""",
-            unsafe_allow_html=True,
-        )
+"""
+    except Exception as e:
+        print(f"[card render] failed for row {row.to_dict()}: {type(e).__name__}: {e}", flush=True)
+        card_html = '<div class="cmo-card">Couldn\'t render this record - see app logs.</div>'
+
+    with col:
+        st.markdown(card_html, unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 

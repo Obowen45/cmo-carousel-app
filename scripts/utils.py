@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import csv
 import json
 import re
@@ -8,7 +6,7 @@ from datetime import date
 SUFFIXES = [" plc", " ltd", " limited", " inc", " llc", " corp", " corporation", " group", " co"]
 
 
-def normalize_company(name: str | None) -> str:
+def normalize_company(name):
     # isinstance check (not just falsiness) matters because pandas silently
     # turns a None in a mixed string/None column into float NaN, which is
     # truthy in Python and would otherwise slip past a plain "if not name".
@@ -22,11 +20,11 @@ def normalize_company(name: str | None) -> str:
     return n
 
 
-def record_key(person_name: str | None, new_company: str | None) -> str:
+def record_key(person_name, new_company):
     return f"{(person_name or '').lower().strip()}|{normalize_company(new_company)}"
 
 
-def load_records(path: str) -> list[dict]:
+def load_records(path):
     try:
         with open(path) as f:
             return json.load(f)
@@ -34,21 +32,21 @@ def load_records(path: str) -> list[dict]:
         return []
 
 
-def save_records(path: str, records: list[dict]) -> None:
+def save_records(path, records):
     records_sorted = sorted(records, key=lambda r: (r.get("new_company") or "", r.get("person_name") or ""))
     with open(path, "w") as f:
         json.dump(records_sorted, f, indent=2, sort_keys=False)
         f.write("\n")
 
 
-def already_seen(url: str, records: list[dict]) -> bool:
+def already_seen(url, records):
     for r in records:
         if url in r.get("source_urls", []):
             return True
     return False
 
 
-def merge_record_into_list(records: list[dict], key: str, extracted: dict, source_url: str) -> list[dict]:
+def merge_record_into_list(records, key, extracted, source_url):
     # A key of "|" means neither person_name nor new_company was extracted -
     # never merge on that, or unrelated vague articles would collide into one record.
     for r in records:
@@ -78,7 +76,7 @@ def merge_record_into_list(records: list[dict], key: str, extracted: dict, sourc
 UNMAPPED_LABEL = "Unknown - needs mapping"
 
 
-def load_agency_mapping(path: str) -> dict:
+def load_agency_mapping(path):
     """Returns {normalized_company_name: incumbent_agency}."""
     mapping = {}
     try:
@@ -92,7 +90,7 @@ def load_agency_mapping(path: str) -> dict:
     return mapping
 
 
-def enrich_with_agency(records: list[dict], mapping: dict) -> list[dict]:
+def enrich_with_agency(records, mapping):
     for r in records:
         r["current_incumbent_agency"] = mapping.get(
             normalize_company(r.get("new_company")), UNMAPPED_LABEL
@@ -100,8 +98,8 @@ def enrich_with_agency(records: list[dict], mapping: dict) -> list[dict]:
     return records
 
 
-def months_since(start_date_str: str | None) -> int | None:
-    if not start_date_str:
+def months_since(start_date_str):
+    if not isinstance(start_date_str, str) or not start_date_str.strip():
         return None
     try:
         start = date.fromisoformat(start_date_str)
@@ -114,7 +112,7 @@ def months_since(start_date_str: str | None) -> int | None:
     return max(months, 0)
 
 
-def band_for_months(months: int | None) -> str:
+def band_for_months(months):
     if months is None:
         return "unknown"
     if months < 6:
@@ -127,26 +125,26 @@ def band_for_months(months: int | None) -> str:
 BAND_SCORE_LABEL = {"green": "Low", "amber": "Med", "red": "High", "unknown": "Unknown"}
 
 
-def vulnerability_percent(months: int | None) -> int | None:
+def vulnerability_percent(months):
     if months is None:
         return None
     return int(min(100, round(months / 15 * 100)))
 
 
-def guess_domain(company_name: str | None) -> str | None:
+def guess_domain(company_name):
     """Best-effort .com domain guess from a company name, for logo lookups.
 
     Works for simple single-word names (Unilever -> unilever.com) but not
     multi-word or abbreviated real names (Procter & Gamble) - correct those
     via a 'domain' column in agency_mapping.csv rather than here.
     """
-    if not company_name:
+    if not isinstance(company_name, str) or not company_name.strip():
         return None
     slug = re.sub(r"[^a-z0-9]", "", company_name.lower())
     return f"{slug}.com" if slug else None
 
 
-def load_domain_overrides(path: str) -> dict:
+def load_domain_overrides(path):
     """Returns {normalized_company_name: domain} from an optional 'domain' column."""
     overrides = {}
     try:
@@ -160,7 +158,7 @@ def load_domain_overrides(path: str) -> dict:
     return overrides
 
 
-def initials_for(name: str | None) -> str:
+def initials_for(name):
     if not isinstance(name, str) or not name.strip():
         return "?"
     parts = [p for p in re.split(r"\s+", name.strip()) if p]
