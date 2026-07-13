@@ -69,7 +69,8 @@ def fetch_private_file(path_in_repo):
         )
         resp.raise_for_status()
         return resp.text
-    except Exception:
+    except Exception as e:
+        print(f"[fetch_private_file] failed for {path_in_repo}: {type(e).__name__}: {e}")
         return None
 
 
@@ -135,7 +136,8 @@ def last_updated_text():
                 dt = datetime.strptime(commit_date, "%Y-%m-%dT%H:%M:%SZ")
                 return dt.strftime("%b %d, %Y - %H:%M GMT")
             return "never"
-        except Exception:
+        except Exception as e:
+            print(f"[last_updated_text] failed: {type(e).__name__}: {e}")
             return "unavailable"
 
     try:
