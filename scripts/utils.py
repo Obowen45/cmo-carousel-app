@@ -9,7 +9,10 @@ SUFFIXES = [" plc", " ltd", " limited", " inc", " llc", " corp", " corporation",
 
 
 def normalize_company(name: str | None) -> str:
-    if not name:
+    # isinstance check (not just falsiness) matters because pandas silently
+    # turns a None in a mixed string/None column into float NaN, which is
+    # truthy in Python and would otherwise slip past a plain "if not name".
+    if not isinstance(name, str) or not name.strip():
         return ""
     n = name.lower().strip()
     n = re.sub(r"[.,]", "", n)
@@ -158,7 +161,7 @@ def load_domain_overrides(path: str) -> dict:
 
 
 def initials_for(name: str | None) -> str:
-    if not name:
+    if not isinstance(name, str) or not name.strip():
         return "?"
     parts = [p for p in re.split(r"\s+", name.strip()) if p]
     if not parts:
