@@ -322,14 +322,17 @@ with table_col:
 
     df["months_since_display"] = df.apply(months_since_display, axis=1)
 
+    BAND_EMOJI = {"green": "🟢", "amber": "🟠", "red": "🔴", "unknown": "⚪"}
+    df["band_emoji"] = df["band"].map(BAND_EMOJI)
+
     display_cols = [
         "person_name", "new_company", "sector_guess", "months_since_display",
-        "current_incumbent_agency", "score_pct", "band",
+        "current_incumbent_agency", "score_pct", "band_emoji",
     ]
     styled = df[display_cols].rename(columns={
         "person_name": "Person", "new_company": "Company", "sector_guess": "Sector",
         "months_since_display": "Months Since", "current_incumbent_agency": "Agency",
-        "score_pct": "Score %", "band": "Band",
+        "score_pct": "Score %", "band_emoji": "Status",
     })
 
     header_col, export_col = st.columns([3, 1])
@@ -346,7 +349,16 @@ with table_col:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
-    st.dataframe(styled, width="stretch", hide_index=True)
+    st.dataframe(
+        styled,
+        width="stretch",
+        hide_index=True,
+        column_config={
+            "Score %": st.column_config.ProgressColumn(
+                "Score %", format="%d%%", min_value=0, max_value=100
+            ),
+        },
+    )
 
 with chart_col:
     st.subheader("Sector Opportunities")
