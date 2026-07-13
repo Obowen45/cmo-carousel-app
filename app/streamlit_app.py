@@ -119,23 +119,16 @@ def logo_exists(domain):
 
 @st.cache_data(ttl=300)
 def last_updated_text():
-    token = get_secret("GITHUB_DATA_TOKEN")
-    repo = get_secret("GITHUB_DATA_REPO")
-    if token and repo:
+    # data/last_run.json is written by the daily automation every time it
+    # runs, regardless of whether any new records were found - so this
+    # reflects "last time we actually checked", not "last time something new
+    # happened to turn up" (which could look stale on a quiet day).
+    last_run_text = fetch_private_file("data/last_run.json")
+    if last_run_text is not None:
         try:
-            resp = requests.get(
-                f"https://api.github.com/repos/{repo}/commits",
-                headers={"Authorization": f"token {token}"},
-                params={"path": "data/records.json", "per_page": 1},
-                timeout=10,
-            )
-            resp.raise_for_status()
-            commits = resp.json()
-            if commits:
-                commit_date = commits[0]["commit"]["committer"]["date"]
-                dt = datetime.strptime(commit_date, "%Y-%m-%dT%H:%M:%SZ")
-                return dt.strftime("%b %d, %Y - %H:%M GMT")
-            return "never"
+            last_run = json.loads(last_run_text)["last_run"]
+            dt = datetime.strptime(last_run, "%Y-%m-%dT%H:%M:%SZ")
+            return dt.strftime("%b %d, %Y - %H:%M GMT")
         except Exception as e:
             print(f"[last_updated_text] failed: {type(e).__name__}: {e}", flush=True)
             return "unavailable"
@@ -198,7 +191,7 @@ st.markdown(
     f"""
 <div class="app-header">
 <h1><span class="brand">CMO CAROUSEL</span> <span class="sub">| VCCP New Business Hub</span></h1>
-<p>Last updated: {last_updated_text()} <span style="opacity:0.4;">(build v2)</span></p>
+<p>Last updated: {last_updated_text()}</p>
 </div>
 """,
     unsafe_allow_html=True,
